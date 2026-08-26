@@ -32,13 +32,26 @@
   function getAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) throw new Error('当前浏览器不支持 Web Audio');
-    audioContext ||= new AC();
-    if (audioContext.state === 'suspended') audioContext.resume();
+    audioContext ||= new AC({ latencyHint: 'interactive' });
     return audioContext;
   }
 
-  function playGuitarNote(midi, duration = 1.25) {
+  async function ensureAudioReady() {
     const ctx = getAudio();
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    // iOS needs a source to start inside the same user gesture that resumes audio.
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+    if (ctx.state !== 'running') throw new Error('音频仍处于暂停状态');
+    return ctx;
+  }
+
+  async function playGuitarNote(midi, duration = 1.25) {
+    const ctx = await ensureAudioReady();
     const now = ctx.currentTime;
     const frequency = 440 * Math.pow(2, (midi - 69) / 12);
     const master = ctx.createGain();
@@ -58,6 +71,14 @@
       osc.connect(gain).connect(body); osc.start(now); osc.stop(now + duration + .03);
     });
   }
+
+  // A first touch primes Web Audio on iOS Safari and embedded mobile browsers.
+  document.addEventListener('pointerdown', () => {
+    if (!audioContext || audioContext.state !== 'running') ensureAudioReady().catch(() => {});
+  }, { capture: true });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && audioContext?.state === 'suspended') audioContext.resume().catch(() => {});
+  });
 
   function toast(message) {
     const el = $('#toast'); el.textContent = message; el.classList.add('show');
@@ -142,10 +163,21 @@
     feedback.textContent = good ? `准确！这是 ${NOTE_NAMES[pc]} · ${SOLFEGE[pc]}` : `这是 ${NOTE_NAMES[quiz.target % 12]}，再听一次它的音色`;
     $('#next-question').disabled = false;
   }
-  $('#play-question').addEventListener('click', () => {
-    playGuitarNote(quiz.target); $('#play-question').classList.add('playing'); setTimeout(() => $('#play-question').classList.remove('playing'), 180);
+  $('#play-question').addEventListener('click', async () => {
+    try {
+      await playGuitarNote(quiz.target);
+      $('#play-question').classList.add('playing'); setTimeout(() => $('#play-question').classList.remove('playing'), 180);
+    } catch {
+      toast('声音启动失败，请调高媒体音量并关闭手机静音模式');
+    }
   });
-  $('#next-question').addEventListener('click', () => { quiz.round++; newQuestion(); if ($('#mode-select').value !== 'play') setTimeout(() => playGuitarNote(quiz.target), 120); });
+  $('#next-question').addEventListener('click', async () => {
+    quiz.round++; newQuestion();
+    if ($('#mode-select').value !== 'play') {
+      try { await playGuitarNote(quiz.target); }
+      catch { toast('声音启动失败，请再次点击播放音符'); }
+    }
+  });
   $('#reveal-answer').addEventListener('click', () => {
     if (quiz.locked) return;
     quiz.locked = true; quiz.streak = 0; stats.total++; saveStats();
@@ -215,7 +247,7 @@
     if (!navigator.mediaDevices?.getUserMedia) { toast('当前浏览器不支持麦克风拾音'); return; }
     try {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      const ctx = getAudio(); analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant = .15;
+      const ctx = await ensureAudioReady(); analyser = ctx.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant = .15;
       ctx.createMediaStreamSource(micStream).connect(analyser); micActive = true;
       $('#mic-toggle').classList.add('active'); $('#mic-toggle span').textContent = '停止实时拾音'; $('#mic-status').classList.add('live'); $('#mic-status').lastChild.textContent = '正在聆听';
       listenPitch();
@@ -285,7 +317,11 @@
     if ($('#flash-toggle').checked) { const flash = $('#edge-flash'); flash.classList.remove('fire'); void flash.offsetWidth; flash.classList.add('fire'); }
   }
   function maybeAccelerate() { if (!$('#trainer-toggle').checked || metro.bars % 4) return; const target = Number($('#trainer-target').value), step = Number($('#trainer-step').value); if (Number(bpmNumber.value) < target) setBpm(Math.min(target, Number(bpmNumber.value) + step)); }
-  function toggleMetro() {
+  async function toggleMetro() {
+    if (!metro.running) {
+      try { await ensureAudioReady(); }
+      catch { toast('声音启动失败，请调高媒体音量并关闭手机静音模式'); return; }
+    }
     metro.running = !metro.running; $('#metro-play').classList.toggle('running', metro.running);
     $('#metro-play').setAttribute('aria-label', metro.running ? '停止节拍器' : '开始节拍器');
     if (metro.running) { metro.beat = metro.subdivision = metro.bars = 0; metro.next = getAudio().currentTime + .06; scheduler(); metro.timer = setInterval(scheduler, 25); }
