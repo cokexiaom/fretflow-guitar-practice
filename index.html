@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101412">
   <title>FretFlow 吉他练习室</title>
-  <link rel="stylesheet" href="styles.css?v=af043e0">
+  <link rel="stylesheet" href="styles.css?v=multi-page-1">
 </head>
 <body>
   <div class="app-shell">
@@ -200,13 +200,13 @@
         <input id="score-name" type="text" maxlength="80" placeholder="请添加曲的名字" autocomplete="off">
         <p class="field-error" id="score-name-error"></p>
         <label>曲谱图片</label>
-        <input id="score-image" type="file" accept="image/*" hidden>
+        <input id="score-image" type="file" accept="image/*" multiple hidden>
         <button class="image-picker" id="score-image-picker" type="button">
           <span class="picker-icon" aria-hidden="true">▧</span>
-          <strong id="image-picker-title">添加图片</strong>
-          <small id="image-picker-copy">支持 JPG、PNG、WEBP</small>
-          <img id="score-image-preview" alt="待添加曲谱预览">
+          <strong id="image-picker-title">添加多张图片</strong>
+          <small id="image-picker-copy">可一次选择多张，支持 JPG、PNG、WEBP</small>
         </button>
+        <div class="page-thumbnails" id="page-thumbnails" aria-label="已添加的曲谱页面"></div>
       </div>
       <footer><button class="text-btn" type="button" data-close-score-modal>取消</button><button class="primary-btn" id="save-score" type="button">添加</button></footer>
     </section>
@@ -215,12 +215,12 @@
   <div class="modal-layer viewer-layer" id="score-viewer" aria-hidden="true">
     <div class="modal-backdrop" data-close-score-viewer></div>
     <section class="score-viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
-      <header><h2 id="viewer-title">曲谱预览</h2><div><button class="viewer-tool" id="viewer-zoom-out" type="button" aria-label="缩小">−</button><output id="viewer-zoom">100%</output><button class="viewer-tool" id="viewer-zoom-in" type="button" aria-label="放大">＋</button><button class="viewer-tool" id="viewer-reset" type="button" aria-label="恢复大小">↺</button><button class="icon-btn" type="button" data-close-score-viewer aria-label="关闭">×</button></div></header>
-      <div class="viewer-canvas" id="viewer-canvas"><img id="viewer-image" alt="曲谱大图"></div>
+      <header><h2 id="viewer-title">曲谱预览</h2><div><button class="viewer-tool" id="viewer-prev" type="button" aria-label="上一页">‹</button><output id="viewer-page">1 / 1</output><button class="viewer-tool" id="viewer-next" type="button" aria-label="下一页">›</button><button class="viewer-tool" id="viewer-zoom-out" type="button" aria-label="缩小">−</button><output id="viewer-zoom">100%</output><button class="viewer-tool" id="viewer-zoom-in" type="button" aria-label="放大">＋</button><button class="viewer-tool" id="viewer-reset" type="button" aria-label="恢复大小">↺</button><button class="icon-btn" type="button" data-close-score-viewer aria-label="关闭">×</button></div></header>
+      <div class="viewer-canvas" id="viewer-canvas"><div class="viewer-pages" id="viewer-pages"></div></div>
     </section>
   </div>
   <div class="edge-flash" id="edge-flash"></div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=af043e0"></script>
+  <script src="app.js?v=multi-page-1"></script>
 </body>
 </html>

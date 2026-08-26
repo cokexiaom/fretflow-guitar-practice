@@ -241,6 +241,7 @@ select { min-width: 130px; height: 38px; margin-top: 6px; padding: 0 34px 0 11px
 .score-card:hover { border-color: var(--muted-2); transform: translateY(-2px); }
 .score-cover { width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; border-bottom: 1px solid var(--line-soft); background: var(--surface-2); overflow: hidden; position: relative; display: grid; place-items: center; }
 .score-cover img { width: 100%; height: 100%; object-fit: contain; background: #f6f5f0; }
+.page-count-badge { position: absolute; left: 9px; top: 9px; padding: 5px 7px; background: rgba(10,15,12,.86); color: #fff; font-family: ui-monospace, monospace; font-size: 8px; }
 .score-cover::after { content: "查看曲谱"; position: absolute; right: 9px; bottom: 9px; padding: 5px 7px; background: color-mix(in srgb, var(--bg) 88%, transparent); color: var(--text); opacity: 0; transition: opacity .18s; font-size: 8px; }
 .score-cover:hover::after { opacity: 1; }
 .score-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: var(--muted-2); background: repeating-linear-gradient(0deg, transparent 0 16px, var(--line-soft) 16px 17px); }
@@ -270,16 +271,25 @@ select { min-width: 130px; height: 38px; margin-top: 6px; padding: 0 34px 0 11px
 #score-name { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); }
 #score-name.invalid { border-color: var(--red); }
 .field-error { min-height: 26px; margin: 5px 0 4px; color: var(--red); font-size: 9px; }
-.image-picker { width: 100%; height: 190px; padding: 14px; border: 1px dashed var(--line); background: var(--surface-2); color: var(--muted); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
+.image-picker { width: 100%; min-height: 92px; padding: 14px; border: 1px dashed var(--line); background: var(--surface-2); color: var(--muted); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
 .image-picker:hover { border-color: var(--lime); }.picker-icon { font-size: 30px; color: var(--lime); }.image-picker strong { color: var(--text); font-size: 12px; }.image-picker small { font-size: 8px; }
-#score-image-preview { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #f6f5f0; }
-.image-picker.has-image #score-image-preview { display: block; }.image-picker.has-image::after { content: "点击更换图片"; position: absolute; right: 8px; bottom: 8px; padding: 6px 8px; background: rgba(10, 15, 12, .88); color: #fff; font-size: 8px; }
+.page-thumbnails { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 9px; }
+.page-thumb { min-width: 0; aspect-ratio: 3 / 4; border: 1px solid var(--line); background: #f6f5f0; position: relative; overflow: hidden; }
+.page-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.page-thumb span { position: absolute; left: 4px; bottom: 4px; padding: 2px 4px; background: rgba(10,15,12,.82); color: #fff; font-size: 7px; }
+.page-thumb button { position: absolute; right: 4px; top: 4px; width: 23px; height: 23px; padding: 0; border: 0; background: rgba(10,15,12,.88); color: #fff; font-size: 13px; }
+.page-thumb button:hover { background: var(--red); }
 .score-modal footer { min-height: 62px; padding: 0 18px; border-top: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
 .viewer-layer { padding: 12px; }.score-viewer { position: relative; z-index: 1; width: min(1180px, 100%); height: min(92vh, 900px); border: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; }
 .score-viewer header h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.score-viewer header > div { display: flex; align-items: center; gap: 6px; }.score-viewer output { width: 45px; text-align: center; color: var(--muted); font-size: 9px; }
+#viewer-page { width: 52px; color: var(--text); }
 .viewer-tool { width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); background: transparent; }.viewer-tool:hover { border-color: var(--muted); }
-.viewer-canvas { flex: 1; min-height: 0; overflow: auto; padding: 18px; background: #292c29; text-align: center; }
-.viewer-canvas img { display: block; width: 100%; height: auto; margin: 0 auto; transform-origin: top center; box-shadow: 0 6px 24px rgba(0,0,0,.28); }
+.viewer-tool:disabled { opacity: .3; cursor: default; }
+.viewer-canvas { flex: 1; width: 100%; min-width: 0; min-height: 0; overflow: auto; padding: 18px; background: #292c29; text-align: center; }
+.viewer-pages { display: flex; width: 100%; max-width: none; min-width: 0; height: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; touch-action: pan-x pan-y; }
+.viewer-pages::-webkit-scrollbar { display: none; }
+.viewer-page { flex: 0 0 100%; width: 100%; max-width: none; min-width: 100%; height: 100%; padding: 0 8px; overflow: auto; scroll-snap-align: start; }
+.viewer-page img { display: block; width: 100%; height: auto; margin: 0 auto; transform-origin: top center; box-shadow: 0 6px 24px rgba(0,0,0,.28); }
 body.modal-open { overflow: hidden; }
 .edge-flash { position: fixed; inset: 0; pointer-events: none; z-index: 50; border: 0 solid var(--lime); opacity: 0; }.edge-flash.fire { animation: edge-pulse .16s ease-out; }
 @keyframes edge-pulse { 0% { opacity: .8; border-width: 10px; } 100% { opacity: 0; border-width: 1px; } }
@@ -293,5 +303,5 @@ body.modal-open { overflow: hidden; }
 }
 @media (max-width: 560px) {
   .brand small { display: none; }.header-actions { gap: 6px; }.practice-toolbar h1, .stats-header h1, .metro-topline h1 { font-size: 22px; }.toolbar-controls { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }.toolbar-controls label:last-child { grid-column: 1 / -1; }.toolbar-controls select { width: 100%; min-width: 0; }.question-stage { padding-inline: 16px; }.answer-grid { grid-template-columns: repeat(2, 1fr); }.panel-head { padding-inline: 14px; }.session-progress > div { width: 55px; }.section-heading { align-items: flex-start; gap: 14px; }.legend { flex-direction: column; gap: 5px; }.tempo-display > div { width: 155px; }.tempo-display { gap: 12px; }#bpm-number { width: 120px; font-size: 62px; }.step-btn { width: 38px; height: 38px; }.metro-topline { align-items: flex-start; }.stat-cards { grid-template-columns: 1fr; }.stat-cards article { border-right: 0; border-bottom: 1px solid var(--line); }.stat-cards article:nth-child(3) { border-bottom: 1px solid var(--line); }.recent-item { grid-template-columns: 1fr auto; }.recent-item span:last-child { display: none; }
-  .scores-header { align-items: flex-start; }.scores-header h1 { font-size: 22px; }.add-score-btn { padding-inline: 10px; }.score-grid { grid-template-columns: 1fr; gap: 12px; }.score-cover { aspect-ratio: 16 / 10; }.score-summary span:last-child { display: none; }.score-empty { min-height: 360px; }.modal-layer { padding: 10px; }.score-modal { max-height: calc(100vh - 20px); overflow-y: auto; }.image-picker { height: 165px; }.viewer-layer { padding: 0; }.score-viewer { width: 100%; height: 100%; border: 0; }.score-viewer header { padding-inline: 10px; }.score-viewer header h2 { max-width: 130px; }.viewer-canvas { padding: 8px; }
+  .scores-header { align-items: flex-start; }.scores-header h1 { font-size: 22px; }.add-score-btn { padding-inline: 10px; }.score-grid { grid-template-columns: 1fr; gap: 12px; }.score-cover { aspect-ratio: 16 / 10; }.score-summary span:last-child { display: none; }.score-empty { min-height: 360px; }.modal-layer { padding: 10px; }.score-modal { max-height: calc(100vh - 20px); overflow-y: auto; }.page-thumbnails { grid-template-columns: repeat(3, minmax(0, 1fr)); }.viewer-layer { padding: 0; }.score-viewer { width: 100%; height: 100%; border: 0; }.score-viewer header { padding-inline: 7px; min-height: 58px; }.score-viewer header h2 { max-width: 88px; font-size: 11px; }.score-viewer header > div { gap: 3px; }.viewer-tool { width: 28px; height: 30px; }.score-viewer header .icon-btn { width: 30px; height: 30px; }.viewer-canvas { padding: 7px; }.viewer-page { padding: 0; }
 }
