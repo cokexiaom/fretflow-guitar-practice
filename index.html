@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101412">
+  <title>FretFlow 吉他练习室</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="FretFlow 首页">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span><strong>FretFlow</strong><small>吉他练习室</small></span>
+      </a>
+      <nav class="main-nav" aria-label="主导航">
+        <button class="nav-item active" data-view="practice">音阶训练</button>
+        <button class="nav-item" data-view="metronome">节拍器</button>
+        <button class="nav-item" data-view="stats">练习统计</button>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" title="切换明暗模式" aria-label="切换明暗模式">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2m-3.64-6.36-1.42 1.42M8.06 15.94l-1.42 1.42m0-11.72 1.42 1.42m7.88 8.88 1.42 1.42M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/></svg>
+        </button>
+        <div class="streak-pill"><span class="pulse-dot"></span><span id="header-streak">连续练习 0 天</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="view active" id="practice-view">
+        <div class="practice-toolbar">
+          <div>
+            <p class="eyebrow">今日练习</p>
+            <h1>听见它，找到它，弹准它。</h1>
+          </div>
+          <div class="toolbar-controls">
+            <label>调式
+              <select id="scale-select">
+                <option value="major">自然大调</option>
+                <option value="minor">自然小调</option>
+                <option value="pentatonic">小调五声音阶</option>
+                <option value="blues">布鲁斯音阶</option>
+                <option value="dorian">多利亚调式</option>
+                <option value="mixolydian">混合利底亚</option>
+              </select>
+            </label>
+            <label>调号
+              <select id="root-select"></select>
+            </label>
+            <label>练习模式
+              <select id="mode-select">
+                <option value="listen">听音辨音</option>
+                <option value="fret">指板找音</option>
+                <option value="play">弹奏跟练</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="practice-grid">
+          <section class="trainer-panel">
+            <div class="panel-head">
+              <div><span class="section-index">01</span><h2 id="trainer-title">听音辨音</h2></div>
+              <div class="session-progress"><span id="question-progress">1 / 10</span><div><i id="question-progress-bar"></i></div></div>
+            </div>
+            <div class="question-stage">
+              <p id="question-copy">听一听，这是哪个音？</p>
+              <button class="sound-orb" id="play-question" type="button" aria-label="播放题目音符">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm4 4c1.3 1.7 1.3 4.3 0 6m2.7-8.5c2.9 3.1 2.9 7.9 0 11"/></svg>
+                <span>播放音符</span>
+              </button>
+              <div class="answer-grid" id="answer-grid"></div>
+              <div class="question-feedback" id="question-feedback" aria-live="polite">选择你听到的音名</div>
+            </div>
+            <div class="trainer-footer">
+              <button class="text-btn" id="reveal-answer" type="button">显示答案</button>
+              <button class="primary-btn" id="next-question" type="button" disabled>下一题 <span>→</span></button>
+            </div>
+          </section>
+
+          <aside class="live-panel" id="live-panel">
+            <div class="panel-head compact">
+              <div><span class="section-index">02</span><h2>实时拾音</h2></div>
+              <span class="status-chip" id="mic-status"><i></i>麦克风未开启</span>
+            </div>
+            <div class="tuner-stage">
+              <div class="detected-note"><strong id="detected-note">--</strong><span id="detected-octave"></span></div>
+              <p id="frequency-label">等待你的琴声</p>
+              <div class="tuner-meter">
+                <div class="meter-labels"><span>-50</span><span>-25</span><span>音准</span><span>+25</span><span>+50</span></div>
+                <div class="meter-track"><span class="meter-center"></span><i id="tuner-needle"></i></div>
+                <p id="tuning-feedback">开启麦克风后，弹一个清晰的单音</p>
+              </div>
+              <canvas id="pitch-canvas" width="640" height="90" aria-label="实时音高轨迹"></canvas>
+            </div>
+            <button class="mic-button" id="mic-toggle" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm7-4a7 7 0 0 1-14 0m7 7v3m-4 0h8"/></svg>
+              <span>开启实时拾音</span>
+            </button>
+            <p class="privacy-note">音频仅在本机实时分析，不会上传或保存</p>
+          </aside>
+        </div>
+
+        <section class="fretboard-section">
+          <div class="section-heading">
+            <div><span class="section-index">03</span><h2>音阶指板</h2><p id="scale-description">C 自然大调 · 0–12 品</p></div>
+            <div class="legend"><span><i class="root-dot"></i>根音</span><span><i class="scale-dot"></i>音阶音</span><span><i class="heard-dot"></i>当前识别</span></div>
+          </div>
+          <div class="fretboard-scroll"><div class="fretboard" id="fretboard"></div></div>
+        </section>
+      </section>
+
+      <section class="view" id="metronome-view">
+        <div class="metronome-layout">
+          <section class="metro-main">
+            <div class="metro-topline"><div><p class="eyebrow">节拍器</p><h1>让节奏落在身体里。</h1></div><button class="tap-btn" id="tap-tempo" type="button">TAP</button></div>
+            <div class="tempo-display">
+              <button class="step-btn" data-bpm-step="-1" aria-label="速度减一">−</button>
+              <div><input id="bpm-number" type="number" min="20" max="300" value="90" aria-label="每分钟节拍数"><span>BPM</span><small id="tempo-name">Andante</small></div>
+              <button class="step-btn" data-bpm-step="1" aria-label="速度加一">+</button>
+            </div>
+            <input class="tempo-slider" id="bpm-slider" type="range" min="20" max="300" value="90" aria-label="速度">
+            <div class="beat-lights" id="beat-lights"></div>
+            <button class="metro-play" id="metro-play" type="button" aria-label="开始节拍器">
+              <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
+              <svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z"/></svg>
+            </button>
+            <p class="shortcut-hint">按空格键开始或停止</p>
+          </section>
+          <aside class="metro-settings">
+            <div class="settings-head"><h2>节拍设置</h2><button class="icon-btn" id="metro-reset" title="重置节拍器" aria-label="重置节拍器"><svg viewBox="0 0 24 24"><path d="M4 4v6h6M5.5 15a7 7 0 1 0 .5-7l-2 2"/></svg></button></div>
+            <label class="setting-row"><span>拍号<small>每小节的拍数</small></span><select id="time-signature"><option value="2">2 / 4</option><option value="3">3 / 4</option><option value="4" selected>4 / 4</option><option value="5">5 / 4</option><option value="6">6 / 8</option><option value="7">7 / 8</option><option value="9">9 / 8</option><option value="12">12 / 8</option></select></label>
+            <label class="setting-row"><span>细分<small>每拍内部的点击</small></span><select id="subdivision"><option value="1">四分音符 ♩</option><option value="2">八分音符 ♪</option><option value="3">三连音 3</option><option value="4">十六分音符 ♬</option></select></label>
+            <label class="setting-row"><span>Swing<small>八分音符摇摆比例</small></span><select id="swing-ratio"><option value="50">直拍 50%</option><option value="55">轻微 55%</option><option value="60">摇摆 60%</option><option value="67">三连音 67%</option></select></label>
+            <label class="setting-row"><span>音色<small>选择点击声音</small></span><select id="click-sound"><option value="wood">木鱼</option><option value="digital">电子</option><option value="rim">边击</option></select></label>
+            <div class="setting-block"><div class="setting-label"><span>重音编辑<small>点击每一拍切换强 / 弱 / 静音</small></span></div><div class="accent-editor" id="accent-editor"></div></div>
+            <label class="range-row"><span>音量</span><input id="metro-volume" type="range" min="0" max="1" step="0.01" value="0.7"><output id="volume-output">70%</output></label>
+            <label class="toggle-row"><span>闪光提示<small>每拍显示全屏边缘闪光</small></span><input id="flash-toggle" type="checkbox" checked><i></i></label>
+            <label class="toggle-row"><span>逐步加速<small>每 4 小节自动增加速度</small></span><input id="trainer-toggle" type="checkbox"><i></i></label>
+            <div class="trainer-options" id="trainer-options"><label>每次增加 <input id="trainer-step" type="number" min="1" max="20" value="5"> BPM</label><label>目标速度 <input id="trainer-target" type="number" min="20" max="300" value="140"> BPM</label></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="stats-view">
+        <div class="stats-header"><div><p class="eyebrow">练习统计</p><h1>每一次拨弦都算数。</h1></div><button class="secondary-btn" id="reset-stats" type="button">清除统计</button></div>
+        <div class="stat-cards">
+          <article><span>今日练习</span><strong id="stat-minutes">0</strong><small>分钟</small></article>
+          <article><span>答题正确率</span><strong id="stat-accuracy">0%</strong><small id="stat-answers">0 道题</small></article>
+          <article><span>最佳连对</span><strong id="stat-best-streak">0</strong><small>次</small></article>
+          <article><span>捕捉音符</span><strong id="stat-notes">0</strong><small>个稳定音</small></article>
+        </div>
+        <div class="stats-grid">
+          <section class="history-panel"><div class="panel-head"><div><span class="section-index">01</span><h2>最近七天</h2></div></div><div class="week-chart" id="week-chart"></div></section>
+          <section class="history-panel"><div class="panel-head"><div><span class="section-index">02</span><h2>音符分布</h2></div></div><div class="note-distribution" id="note-distribution"></div></section>
+        </div>
+        <section class="history-panel recent-section"><div class="panel-head"><div><span class="section-index">03</span><h2>最近练习</h2></div></div><div class="recent-list" id="recent-list"></div></section>
+      </section>
+    </main>
+  </div>
+  <div class="edge-flash" id="edge-flash"></div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
