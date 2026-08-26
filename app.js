@@ -91,6 +91,7 @@
     $$('.view').forEach(view => view.classList.remove('active'));
     $(`#${button.dataset.view}-view`).classList.add('active');
     if (button.dataset.view === 'stats') renderStats();
+    if (button.dataset.view === 'scores') renderScores();
   }));
   const preferredLight = localStorage.getItem('fretflow-theme') === 'light';
   document.documentElement.classList.toggle('light', preferredLight);
@@ -391,5 +392,113 @@
   }
   $('#reset-stats').addEventListener('click', () => { if (!confirm('确定清除所有本机练习统计吗？')) return; stats = { ...defaultStats, minutes: {}, sessions: [], noteCounts: {} }; saveStats(); renderStats(); toast('练习统计已清除'); });
 
-  buildBeats(); newQuestion(); updateFretboard(); renderStats(); drawPitchTrace(); drawTunerDial();
+  // Local score library
+  const SCORE_DB = 'fretflow-score-library';
+  let scoreDb, editingScoreId = null, pendingScoreImage = null, scoreObjectUrls = [], viewerZoom = 1;
+  function openScoreDb() {
+    if (scoreDb) return Promise.resolve(scoreDb);
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(SCORE_DB, 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('scores', { keyPath: 'id', autoIncrement: true });
+      request.onsuccess = () => { scoreDb = request.result; resolve(scoreDb); };
+      request.onerror = () => reject(request.error);
+    });
+  }
+  async function scoreStore(mode, operation) {
+    const db = await openScoreDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('scores', mode); const store = transaction.objectStore('scores');
+      const request = operation(store); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+    });
+  }
+  const getScores = () => scoreStore('readonly', store => store.getAll());
+  const getScore = (id) => scoreStore('readonly', store => store.get(id));
+  const putScore = (score) => scoreStore('readwrite', store => store.put(score));
+  const deleteScore = (id) => scoreStore('readwrite', store => store.delete(id));
+
+  async function optimizeScoreImage(file) {
+    if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
+    const bitmap = await createImageBitmap(file); const maxSide = 3000; const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas'); canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext('2d'); context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('图片处理失败')), 'image/jpeg', .9));
+  }
+
+  function setModalOpen(element, open) {
+    element.classList.toggle('open', open); element.setAttribute('aria-hidden', String(!open));
+    document.body.classList.toggle('modal-open', $$('.modal-layer.open').length > 0);
+  }
+  function setScoreImagePreview(blob) {
+    const picker = $('#score-image-picker'), image = $('#score-image-preview');
+    if (image.dataset.url) URL.revokeObjectURL(image.dataset.url);
+    if (!blob) { picker.classList.remove('has-image'); image.removeAttribute('src'); delete image.dataset.url; $('#image-picker-title').textContent = '添加图片'; return; }
+    const url = URL.createObjectURL(blob); image.src = url; image.dataset.url = url; picker.classList.add('has-image'); $('#image-picker-title').textContent = '更换图片';
+  }
+  async function openScoreModal(scoreId = null) {
+    editingScoreId = scoreId; pendingScoreImage = null; $('#score-name-error').textContent = ''; $('#score-name').classList.remove('invalid'); $('#score-image').value = '';
+    if (scoreId) {
+      const score = await getScore(scoreId); if (!score) return;
+      $('#score-modal-title').textContent = '编辑曲谱'; $('#save-score').textContent = '保存修改'; $('#score-name').value = score.name; pendingScoreImage = score.image || null; setScoreImagePreview(pendingScoreImage);
+    } else {
+      $('#score-modal-title').textContent = '添加曲谱'; $('#save-score').textContent = '添加'; $('#score-name').value = ''; setScoreImagePreview(null);
+    }
+    setModalOpen($('#score-modal'), true); setTimeout(() => $('#score-name').focus(), 80);
+  }
+  function closeScoreModal() { setModalOpen($('#score-modal'), false); setScoreImagePreview(null); editingScoreId = null; pendingScoreImage = null; }
+
+  async function saveScore() {
+    const name = $('#score-name').value.trim();
+    if (!name) { $('#score-name').classList.add('invalid'); $('#score-name-error').textContent = '添加失败：请先填写曲的名字'; $('#score-name').focus(); return; }
+    $('#save-score').disabled = true;
+    try {
+      const existing = editingScoreId ? await getScore(editingScoreId) : null; const now = Date.now();
+      const record = { name, image: pendingScoreImage || null, createdAt: existing?.createdAt || now, updatedAt: now };
+      if (existing?.id) record.id = existing.id;
+      await putScore(record);
+      closeScoreModal(); await renderScores(); toast(existing ? '曲谱修改成功' : '曲谱添加成功');
+    } catch { toast('保存失败，请检查浏览器存储空间'); }
+    finally { $('#save-score').disabled = false; }
+  }
+
+  function createScoreCard(score) {
+    const article = document.createElement('article'); article.className = 'score-card';
+    const cover = document.createElement('button'); cover.type = 'button'; cover.className = 'score-cover'; cover.setAttribute('aria-label', score.image ? `预览 ${score.name}` : `为 ${score.name} 添加图片`);
+    if (score.image) {
+      const url = URL.createObjectURL(score.image); scoreObjectUrls.push(url); const image = document.createElement('img'); image.src = url; image.alt = `${score.name} 曲谱缩略图`; cover.append(image); cover.addEventListener('click', () => openScoreViewer(score));
+    } else {
+      const placeholder = document.createElement('div'); placeholder.className = 'score-placeholder'; placeholder.innerHTML = '<span>＋</span>'; cover.append(placeholder); cover.addEventListener('click', () => openScoreModal(score.id));
+    }
+    const body = document.createElement('div'); body.className = 'score-card-body'; const title = document.createElement('h2'); title.textContent = score.name;
+    const meta = document.createElement('p'); meta.textContent = score.image ? `已添加图片 · ${new Date(score.updatedAt).toLocaleDateString('zh-CN')}` : '尚未添加图片';
+    const actions = document.createElement('div'); actions.className = 'score-actions';
+    const preview = document.createElement('button'); preview.className = 'score-action primary'; preview.type = 'button'; preview.textContent = score.image ? '预览' : '添加图片'; preview.addEventListener('click', () => score.image ? openScoreViewer(score) : openScoreModal(score.id));
+    const edit = document.createElement('button'); edit.className = 'score-action'; edit.type = 'button'; edit.textContent = '修改'; edit.addEventListener('click', () => openScoreModal(score.id));
+    const remove = document.createElement('button'); remove.className = 'score-action danger'; remove.type = 'button'; remove.textContent = '删除'; remove.addEventListener('click', async () => { if (!confirm(`确定删除《${score.name}》吗？`)) return; await deleteScore(score.id); await renderScores(); toast('曲谱已删除'); });
+    actions.append(preview, edit, remove); body.append(title, meta, actions); article.append(cover, body); return article;
+  }
+  async function renderScores() {
+    const grid = $('#score-grid'); if (!grid) return;
+    scoreObjectUrls.forEach(URL.revokeObjectURL); scoreObjectUrls = [];
+    try {
+      const scores = (await getScores()).sort((a, b) => b.updatedAt - a.updatedAt); grid.innerHTML = ''; scores.forEach(score => grid.append(createScoreCard(score)));
+      $('#score-count').textContent = scores.length; $('#score-empty').classList.toggle('show', scores.length === 0); grid.style.display = scores.length ? 'grid' : 'none';
+    } catch { $('#score-empty').classList.add('show'); toast('无法读取本机曲谱库'); }
+  }
+
+  function applyViewerZoom() { $('#viewer-image').style.width = `${viewerZoom * 100}%`; $('#viewer-zoom').textContent = `${Math.round(viewerZoom * 100)}%`; }
+  function openScoreViewer(score) {
+    if (!score.image) return openScoreModal(score.id); const image = $('#viewer-image');
+    if (image.dataset.url) URL.revokeObjectURL(image.dataset.url); const url = URL.createObjectURL(score.image); image.src = url; image.dataset.url = url; image.alt = `${score.name} 曲谱大图`; $('#viewer-title').textContent = score.name; viewerZoom = 1; applyViewerZoom(); setModalOpen($('#score-viewer'), true); $('#viewer-canvas').scrollTo(0, 0);
+  }
+  function closeScoreViewer() { setModalOpen($('#score-viewer'), false); const image = $('#viewer-image'); if (image.dataset.url) URL.revokeObjectURL(image.dataset.url); image.removeAttribute('src'); delete image.dataset.url; }
+
+  $('#add-score').addEventListener('click', () => openScoreModal()); $('#empty-add-score').addEventListener('click', () => openScoreModal());
+  $$('[data-close-score-modal]').forEach(item => item.addEventListener('click', closeScoreModal)); $$('[data-close-score-viewer]').forEach(item => item.addEventListener('click', closeScoreViewer));
+  $('#score-image-picker').addEventListener('click', () => $('#score-image').click());
+  $('#score-image').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; $('#image-picker-copy').textContent = '正在处理图片…'; try { pendingScoreImage = await optimizeScoreImage(file); setScoreImagePreview(pendingScoreImage); $('#image-picker-copy').textContent = `${(pendingScoreImage.size / 1024 / 1024).toFixed(1)} MB · 点击可更换`; } catch (error) { toast(error.message); } });
+  $('#score-name').addEventListener('input', () => { $('#score-name').classList.remove('invalid'); $('#score-name-error').textContent = ''; }); $('#score-name').addEventListener('keydown', event => { if (event.key === 'Enter') saveScore(); }); $('#save-score').addEventListener('click', saveScore);
+  $('#viewer-zoom-in').addEventListener('click', () => { viewerZoom = Math.min(3, viewerZoom + .25); applyViewerZoom(); }); $('#viewer-zoom-out').addEventListener('click', () => { viewerZoom = Math.max(.5, viewerZoom - .25); applyViewerZoom(); }); $('#viewer-reset').addEventListener('click', () => { viewerZoom = 1; applyViewerZoom(); });
+  document.addEventListener('keydown', event => { if (event.key !== 'Escape') return; if ($('#score-viewer').classList.contains('open')) closeScoreViewer(); else if ($('#score-modal').classList.contains('open')) closeScoreModal(); });
+
+  buildBeats(); newQuestion(); updateFretboard(); renderStats(); renderScores(); drawPitchTrace(); drawTunerDial();
 })();

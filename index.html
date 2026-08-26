@@ -17,6 +17,7 @@
       <nav class="main-nav" aria-label="主导航">
         <button class="nav-item active" data-view="practice">音阶训练</button>
         <button class="nav-item" data-view="metronome">节拍器</button>
+        <button class="nav-item" data-view="scores">曲谱</button>
         <button class="nav-item" data-view="stats">练习统计</button>
       </nav>
       <div class="header-actions">
@@ -169,7 +170,54 @@
         </div>
         <section class="history-panel recent-section"><div class="panel-head"><div><span class="section-index">03</span><h2>最近练习</h2></div></div><div class="recent-list" id="recent-list"></div></section>
       </section>
+
+      <section class="view" id="scores-view">
+        <div class="scores-header">
+          <div><p class="eyebrow">我的曲谱</p><h1>把想练的歌，都放在这里。</h1></div>
+          <button class="primary-btn add-score-btn" id="add-score" type="button"><span aria-hidden="true">＋</span> 添加曲谱</button>
+        </div>
+        <div class="score-summary">
+          <span><strong id="score-count">0</strong> 首曲谱</span>
+          <span>图片仅保存在当前设备</span>
+        </div>
+        <div class="score-grid" id="score-grid"></div>
+        <div class="score-empty" id="score-empty">
+          <div class="empty-score-art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><b>♪</b></div>
+          <h2>还没有曲谱</h2>
+          <p>添加第一首想练习的曲子</p>
+          <button class="secondary-btn" id="empty-add-score" type="button">添加曲谱</button>
+        </div>
+      </section>
     </main>
+  </div>
+
+  <div class="modal-layer" id="score-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-score-modal></div>
+    <section class="score-modal" role="dialog" aria-modal="true" aria-labelledby="score-modal-title">
+      <header><div><span class="section-index">曲谱资料</span><h2 id="score-modal-title">添加曲谱</h2></div><button class="icon-btn" type="button" data-close-score-modal aria-label="关闭">×</button></header>
+      <div class="score-form">
+        <label for="score-name">曲名 <em>*</em></label>
+        <input id="score-name" type="text" maxlength="80" placeholder="请添加曲的名字" autocomplete="off">
+        <p class="field-error" id="score-name-error"></p>
+        <label>曲谱图片</label>
+        <input id="score-image" type="file" accept="image/*" hidden>
+        <button class="image-picker" id="score-image-picker" type="button">
+          <span class="picker-icon" aria-hidden="true">▧</span>
+          <strong id="image-picker-title">添加图片</strong>
+          <small id="image-picker-copy">支持 JPG、PNG、WEBP</small>
+          <img id="score-image-preview" alt="待添加曲谱预览">
+        </button>
+      </div>
+      <footer><button class="text-btn" type="button" data-close-score-modal>取消</button><button class="primary-btn" id="save-score" type="button">添加</button></footer>
+    </section>
+  </div>
+
+  <div class="modal-layer viewer-layer" id="score-viewer" aria-hidden="true">
+    <div class="modal-backdrop" data-close-score-viewer></div>
+    <section class="score-viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
+      <header><h2 id="viewer-title">曲谱预览</h2><div><button class="viewer-tool" id="viewer-zoom-out" type="button" aria-label="缩小">−</button><output id="viewer-zoom">100%</output><button class="viewer-tool" id="viewer-zoom-in" type="button" aria-label="放大">＋</button><button class="viewer-tool" id="viewer-reset" type="button" aria-label="恢复大小">↺</button><button class="icon-btn" type="button" data-close-score-viewer aria-label="关闭">×</button></div></header>
+      <div class="viewer-canvas" id="viewer-canvas"><img id="viewer-image" alt="曲谱大图"></div>
+    </section>
   </div>
   <div class="edge-flash" id="edge-flash"></div>
   <div class="toast" id="toast" role="status"></div>
