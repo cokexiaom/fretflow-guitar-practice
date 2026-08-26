@@ -209,8 +209,40 @@
   }
 
   // Microphone pitch detection
-  let micStream, analyser, micAnimation, micActive = false, stablePc = null, stableFrames = 0, lastCaptured = null;
+  let micStream, analyser, micAnimation, micActive = false, stablePc = null, stableFrames = 0, lastCaptured = null, currentCents = 0;
   const pitchHistory = Array(120).fill(null);
+  const guitarPositions = (midi) => STRINGS.flatMap((openMidi, stringIndex) => {
+    const fret = midi - openMidi;
+    return fret >= 0 && fret <= 20 ? [{ string: stringIndex + 1, fret, openMidi }] : [];
+  }).sort((a, b) => a.fret - b.fret || a.string - b.string);
+
+  function drawTunerDial(cents = 0, active = false) {
+    const canvas = $('#tuner-dial'); const ctx = canvas.getContext('2d'); const styles = getComputedStyle(document.documentElement);
+    const width = canvas.width, centerX = width / 2, centerY = 195, radius = 174;
+    const line = styles.getPropertyValue('--line').trim(), muted = styles.getPropertyValue('--muted').trim();
+    const lime = styles.getPropertyValue('--lime').trim(), cyan = styles.getPropertyValue('--cyan').trim();
+    ctx.clearRect(0, 0, width, canvas.height);
+    ctx.lineCap = 'round';
+    for (let value = -50; value <= 50; value += 5) {
+      const angle = Math.PI * (1.12 + (value + 50) / 100 * .76);
+      const major = value % 25 === 0, inner = radius - (major ? 19 : 10);
+      ctx.strokeStyle = value === 0 ? lime : line; ctx.lineWidth = value === 0 ? 3 : major ? 2 : 1;
+      ctx.beginPath(); ctx.moveTo(centerX + Math.cos(angle) * inner, centerY + Math.sin(angle) * inner); ctx.lineTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius); ctx.stroke();
+      if (major) { ctx.fillStyle = value === 0 ? lime : muted; ctx.font = '14px ui-monospace'; ctx.textAlign = 'center'; ctx.fillText(value > 0 ? `+${value}` : `${value}`, centerX + Math.cos(angle) * (radius - 34), centerY + Math.sin(angle) * (radius - 34)); }
+    }
+    const bounded = Math.max(-50, Math.min(50, cents)); const needleAngle = Math.PI * (1.12 + (bounded + 50) / 100 * .76);
+    ctx.strokeStyle = active && Math.abs(cents) <= 5 ? lime : active ? cyan : muted; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX + Math.cos(needleAngle) * (radius - 42), centerY + Math.sin(needleAngle) * (radius - 42)); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(centerX, centerY, 8, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function updateGuitarPosition(info) {
+    const positions = guitarPositions(info.midi); const best = positions[0];
+    $$('#string-strip span').forEach(item => item.classList.toggle('active', Number(item.dataset.midi) === info.midi));
+    if (!best) { $('#string-position').textContent = '指板范围外'; $('#alternate-positions').textContent = '标准调弦 0–20 品'; return; }
+    $('#string-position').textContent = `${best.string} 弦 · ${best.fret === 0 ? '空弦' : `${best.fret} 品`}`;
+    $('#alternate-positions').textContent = positions.slice(1, 4).map(item => `${item.string}弦${item.fret}品`).join(' · ') || (best.fret === 0 ? '标准空弦音' : '唯一常用位置');
+  }
   function autoCorrelate(buffer, sampleRate) {
     const size = Math.min(2048, buffer.length); let mean = 0;
     for (let i = 0; i < size; i++) mean += buffer[i]; mean /= size;
@@ -256,15 +288,22 @@
   function stopMic() {
     micActive = false; cancelAnimationFrame(micAnimation); micStream?.getTracks().forEach(track => track.stop()); micStream = null;
     $('#mic-toggle').classList.remove('active'); $('#mic-toggle span').textContent = '开启实时拾音'; $('#mic-status').classList.remove('live'); $('#mic-status').lastChild.textContent = '麦克风未开启';
-    $('#detected-note').textContent = '--'; $('#detected-octave').textContent = ''; $('#frequency-label').textContent = '等待你的琴声'; $('#tuning-feedback').textContent = '开启麦克风后，弹一个清晰的单音'; updateFretboard();
+    $('#detected-note').textContent = '--'; $('#detected-octave').textContent = ''; $('#frequency-label').textContent = '等待你的琴声'; $('#tuning-feedback').textContent = '开启麦克风后，弹一个清晰的单音';
+    $('#string-position').textContent = '--'; $('#alternate-positions').textContent = '标准调弦'; $('#cents-value').textContent = '--'; $('#signal-value').textContent = '0%'; $('#signal-bar').style.width = '0'; $('#trace-note').textContent = '等待输入';
+    $$('#string-strip span').forEach(item => item.classList.remove('active')); currentCents = 0; drawTunerDial(); updateFretboard();
   }
   function listenPitch() {
     if (!micActive) return; const buffer = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(buffer);
+    let rms = 0; for (const sample of buffer) rms += sample * sample; rms = Math.sqrt(rms / buffer.length);
+    const signal = Math.round(Math.max(0, Math.min(100, (rms - .006) / .16 * 100)));
+    $('#signal-value').textContent = `${signal}%`; $('#signal-bar').style.width = `${signal}%`;
     const frequency = autoCorrelate(buffer, audioContext.sampleRate);
     if (frequency) {
       const info = frequencyInfo(frequency); $('#detected-note').textContent = NOTE_NAMES[info.pc]; $('#detected-octave').textContent = info.octave; $('#frequency-label').textContent = `${frequency.toFixed(1)} Hz · ${info.cents > 0 ? '+' : ''}${info.cents} cents`;
+      currentCents += (info.cents - currentCents) * .28; drawTunerDial(currentCents, true); updateGuitarPosition(info);
+      $('#cents-value').textContent = `${info.cents > 0 ? '+' : ''}${info.cents}`; $('#trace-note').textContent = `${NOTE_NAMES[info.pc]}${info.octave} · ${frequency.toFixed(1)} Hz`;
       $('#tuner-needle').style.left = `${Math.max(2, Math.min(98, info.cents + 50))}%`; $('#tuner-needle').classList.toggle('in-tune', Math.abs(info.cents) <= 5);
-      $('#tuning-feedback').textContent = Math.abs(info.cents) <= 5 ? '音准很好' : info.cents < 0 ? '略低，稍微拧紧或提高指压' : '略高，稍微放松';
+      $('#tuning-feedback').textContent = Math.abs(info.cents) <= 5 ? '音准准确 · 保持' : info.cents < 0 ? `偏低 ${Math.abs(info.cents)} 音分 · 调高` : `偏高 ${info.cents} 音分 · 调低`;
       if (stablePc === info.pc) stableFrames++; else { stablePc = info.pc; stableFrames = 0; }
       if (stableFrames === 8) {
         updateFretboard(info.pc);
@@ -272,7 +311,7 @@
         if ($('#mode-select').value === 'play' && !quiz.locked && info.pc === quiz.target % 12) answerQuestion(null, info.pc, true);
       }
       pitchHistory.push(info.cents); pitchHistory.shift();
-    } else { pitchHistory.push(null); pitchHistory.shift(); }
+    } else { pitchHistory.push(null); pitchHistory.shift(); if (signal < 5) drawTunerDial(currentCents, false); }
     drawPitchTrace(); micAnimation = requestAnimationFrame(listenPitch);
   }
   function drawPitchTrace() {
@@ -352,5 +391,5 @@
   }
   $('#reset-stats').addEventListener('click', () => { if (!confirm('确定清除所有本机练习统计吗？')) return; stats = { ...defaultStats, minutes: {}, sessions: [], noteCounts: {} }; saveStats(); renderStats(); toast('练习统计已清除'); });
 
-  buildBeats(); newQuestion(); updateFretboard(); renderStats(); drawPitchTrace();
+  buildBeats(); newQuestion(); updateFretboard(); renderStats(); drawPitchTrace(); drawTunerDial();
 })();

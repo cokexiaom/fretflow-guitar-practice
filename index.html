@@ -85,14 +85,26 @@
               <span class="status-chip" id="mic-status"><i></i>麦克风未开启</span>
             </div>
             <div class="tuner-stage">
-              <div class="detected-note"><strong id="detected-note">--</strong><span id="detected-octave"></span></div>
-              <p id="frequency-label">等待你的琴声</p>
+              <div class="string-strip" id="string-strip" aria-label="标准调弦六根琴弦">
+                <span data-midi="64"><small>1弦</small>E4</span><span data-midi="59"><small>2弦</small>B3</span><span data-midi="55"><small>3弦</small>G3</span><span data-midi="50"><small>4弦</small>D3</span><span data-midi="45"><small>5弦</small>A2</span><span data-midi="40"><small>6弦</small>E2</span>
+              </div>
+              <div class="dial-wrap">
+                <canvas id="tuner-dial" width="640" height="210" aria-label="实时音准表盘"></canvas>
+                <div class="detected-note"><strong id="detected-note">--</strong><span id="detected-octave"></span></div>
+                <p id="frequency-label">等待你的琴声</p>
+              </div>
               <div class="tuner-meter">
                 <div class="meter-labels"><span>-50</span><span>-25</span><span>音准</span><span>+25</span><span>+50</span></div>
                 <div class="meter-track"><span class="meter-center"></span><i id="tuner-needle"></i></div>
                 <p id="tuning-feedback">开启麦克风后，弹一个清晰的单音</p>
               </div>
-              <canvas id="pitch-canvas" width="640" height="90" aria-label="实时音高轨迹"></canvas>
+              <div class="tuner-readouts">
+                <div><small>识别位置</small><strong id="string-position">--</strong><span id="alternate-positions">标准调弦</span></div>
+                <div><small>音分偏差</small><strong id="cents-value">--</strong><span>cent</span></div>
+                <div><small>输入信号</small><strong id="signal-value">0%</strong><span class="signal-track"><i id="signal-bar"></i></span></div>
+              </div>
+              <div class="trace-head"><span>音值轨迹</span><span id="trace-note">等待输入</span></div>
+              <canvas id="pitch-canvas" width="640" height="78" aria-label="实时音高轨迹"></canvas>
             </div>
             <button class="mic-button" id="mic-toggle" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm7-4a7 7 0 0 1-14 0m7 7v3m-4 0h8"/></svg>
