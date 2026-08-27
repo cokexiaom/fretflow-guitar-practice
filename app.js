@@ -58,7 +58,7 @@
     const body = ctx.createBiquadFilter();
     body.type = 'lowpass'; body.frequency.value = 2800; body.Q.value = .5;
     master.gain.setValueAtTime(.0001, now);
-    master.gain.exponentialRampToValueAtTime(.34, now + .012);
+    master.gain.exponentialRampToValueAtTime(.78, now + .012);
     master.gain.exponentialRampToValueAtTime(.0001, now + duration);
     body.connect(master).connect(ctx.destination);
     [1, 2, 3, 4].forEach((partial, index) => {
@@ -104,17 +104,21 @@
   // Scale trainer
   const rootSelect = $('#root-select');
   NOTE_NAMES.forEach((note, index) => rootSelect.add(new Option(note, index, false, index === 0)));
-  const quiz = { round: 1, correct: 0, streak: 0, target: 60, locked: false };
+  const quiz = { round: 1, correct: 0, streak: 0, target: 60, locked: false, queue: [], advanceTimer: null };
   const scalePitchClasses = () => {
     const root = Number(rootSelect.value);
     return SCALES[$('#scale-select').value].intervals.map(interval => (root + interval) % 12);
   };
-  function randomTarget() {
-    const pool = scalePitchClasses();
-    const pc = pool[Math.floor(Math.random() * pool.length)];
-    return 48 + pc + (Math.random() > .45 ? 12 : 0);
-  }
   function shuffled(values) { return values.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]); }
+  function buildQuestionQueue() {
+    const queue = [];
+    while (queue.length < 10) {
+      const cycle = shuffled(scalePitchClasses());
+      if (queue.length && cycle[0] === queue.at(-1) && cycle.length > 1) [cycle[0], cycle[1]] = [cycle[1], cycle[0]];
+      queue.push(...cycle);
+    }
+    return queue.slice(0, 10).map(pc => 48 + pc + (Math.random() > .45 ? 12 : 0));
+  }
   function renderAnswers() {
     const mode = $('#mode-select').value;
     const targetPc = quiz.target % 12;
@@ -129,14 +133,17 @@
     });
   }
   function newQuestion(resetRound = false) {
+    clearTimeout(quiz.advanceTimer);
     if (resetRound || quiz.round > 10) {
       if (quiz.round > 10) {
         stats.sessions.unshift({ date: new Date().toISOString(), type: '音阶训练', score: `${quiz.correct}/10` });
         stats.sessions = stats.sessions.slice(0, 12); saveStats(); toast(`本轮完成：答对 ${quiz.correct} 题`);
       }
       quiz.round = 1; quiz.correct = 0; quiz.streak = 0;
+      quiz.queue = buildQuestionQueue();
     }
-    quiz.target = randomTarget(); quiz.locked = false;
+    if (!quiz.queue.length) quiz.queue = buildQuestionQueue();
+    quiz.target = quiz.queue[quiz.round - 1]; quiz.locked = false;
     $('#question-progress').textContent = `${quiz.round} / 10`;
     $('#question-progress-bar').style.width = `${quiz.round * 10}%`;
     $('#question-feedback').className = 'question-feedback';
@@ -150,6 +157,16 @@
     if (mode !== 'play') renderAnswers();
     updateFretboard();
   }
+  async function advanceQuestion() {
+    clearTimeout(quiz.advanceTimer);
+    quiz.advanceTimer = null;
+    quiz.round++;
+    newQuestion();
+    if ($('#mode-select').value !== 'play') {
+      try { await playGuitarNote(quiz.target); }
+      catch { toast('声音启动失败，请再次点击播放音符'); }
+    }
+  }
   function answerQuestion(button, pc, fromMic = false) {
     if (quiz.locked) return;
     quiz.locked = true; const good = pc === quiz.target % 12;
@@ -161,8 +178,9 @@
       if (!good) button.classList.add('wrong');
     }
     const feedback = $('#question-feedback'); feedback.className = `question-feedback ${good ? 'good' : 'bad'}`;
-    feedback.textContent = good ? `准确！这是 ${NOTE_NAMES[pc]} · ${SOLFEGE[pc]}` : `这是 ${NOTE_NAMES[quiz.target % 12]}，再听一次它的音色`;
+    feedback.textContent = good ? `准确！这是 ${NOTE_NAMES[pc]} · ${SOLFEGE[pc]}，即将进入下一题` : `这是 ${NOTE_NAMES[quiz.target % 12]}，即将进入下一题`;
     $('#next-question').disabled = false;
+    quiz.advanceTimer = setTimeout(advanceQuestion, 1100);
   }
   $('#play-question').addEventListener('click', async () => {
     try {
@@ -172,13 +190,7 @@
       toast('声音启动失败，请调高媒体音量并关闭手机静音模式');
     }
   });
-  $('#next-question').addEventListener('click', async () => {
-    quiz.round++; newQuestion();
-    if ($('#mode-select').value !== 'play') {
-      try { await playGuitarNote(quiz.target); }
-      catch { toast('声音启动失败，请再次点击播放音符'); }
-    }
-  });
+  $('#next-question').addEventListener('click', advanceQuestion);
   $('#reveal-answer').addEventListener('click', () => {
     if (quiz.locked) return;
     quiz.locked = true; quiz.streak = 0; stats.total++; saveStats();
