@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">西部牛仔吉他手</title>
+  <desc id="desc">黄昏荒野中，一位戴牛仔帽的人坐在木箱上弹奏木吉他</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18262b"/>
+      <stop offset=".55" stop-color="#784d42"/>
+      <stop offset="1" stop-color="#d08b52"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#5d4231"/><stop offset="1" stop-color="#171b18"/>
+    </linearGradient>
+    <radialGradient id="sun"><stop stop-color="#ffe2a0"/><stop offset="1" stop-color="#efad5f"/></radialGradient>
+  </defs>
+  <rect width="1200" height="620" fill="url(#sky)"/>
+  <circle cx="922" cy="169" r="67" fill="url(#sun)" opacity=".9"/>
+  <path d="M0 343 121 305l97 29 130-77 117 64 138-112 113 94 116-49 135 72 153-52v346H0Z" fill="#26312e" opacity=".76"/>
+  <path d="M0 398c150-56 255-20 389-41 146-24 260-91 405-43 139 46 242 12 406-21v327H0Z" fill="url(#ground)"/>
+  <g fill="#18211e">
+    <path d="M102 318h18v151h-18zM63 359h95v17H63zM83 337h57v17H83z"/>
+    <path d="M1084 271h15v173h-15zM1047 314h87v16h-87zM1065 292h52v15h-52z"/>
+  </g>
+  <g opacity=".32" stroke="#e0a866" fill="none">
+    <path d="M0 445q200-40 400 0t400 0 400 0"/><path d="M0 476q200-40 400 0t400 0 400 0"/>
+  </g>
+  <g transform="translate(600 62)">
+    <ellipse cx="0" cy="500" rx="220" ry="34" fill="#101412" opacity=".55"/>
+    <path d="M-93 360h174l18 133H-113Z" fill="#62412d" stroke="#2b211b" stroke-width="8"/>
+    <path d="M-100 406H90M-105 452H95" stroke="#8c6141" stroke-width="7"/>
+    <path d="M-53 310c-39 63-51 107-66 169" stroke="#181a18" stroke-width="31" stroke-linecap="round"/>
+    <path d="M55 311c44 56 59 99 76 164" stroke="#181a18" stroke-width="31" stroke-linecap="round"/>
+    <path d="M-127 476h58" stroke="#22211d" stroke-width="24" stroke-linecap="round"/>
+    <path d="M121 475h59" stroke="#22211d" stroke-width="24" stroke-linecap="round"/>
+    <path d="M-89 171q90-62 179 0l-13 173q-77 54-154 0Z" fill="#31403a" stroke="#1b211e" stroke-width="7"/>
+    <path d="M-62 178q63 71 125 0" fill="none" stroke="#a8663e" stroke-width="12"/>
+    <circle cx="0" cy="116" r="60" fill="#b67b55"/>
+    <path d="M-60 111q62 25 120 0v47q-57 44-120 0Z" fill="#6b4031" opacity=".4"/>
+    <path d="M-92 100q92-45 184 0l-17-53q-74-48-150 0Z" fill="#29231d"/>
+    <ellipse cx="0" cy="92" rx="112" ry="21" fill="#211d19"/>
+    <path d="M-65 84q64 20 130 0" stroke="#b16f3f" stroke-width="8" fill="none"/>
+    <circle cx="-21" cy="112" r="4" fill="#171512"/><circle cx="21" cy="112" r="4" fill="#171512"/>
+    <path d="M-13 140q15 8 29 0" stroke="#38231c" stroke-width="4" fill="none"/>
+    <path d="M-76 227q-76 44-104 95" stroke="#b67b55" stroke-width="25" stroke-linecap="round"/>
+    <path d="M76 222q63 31 98 82" stroke="#b67b55" stroke-width="25" stroke-linecap="round"/>
+    <g transform="rotate(-8 15 290)">
+      <ellipse cx="-13" cy="298" rx="104" ry="88" fill="#b86d31" stroke="#512f1d" stroke-width="9"/>
+      <ellipse cx="-15" cy="299" rx="30" ry="25" fill="#3a2418"/>
+      <circle cx="52" cy="274" r="18" fill="#d49a51"/>
+      <path d="M70 266 252 200l13 30L80 292Z" fill="#7c4828" stroke="#41291c" stroke-width="6"/>
+      <path d="m246 194 55-7 9 29-46 18Z" fill="#4b3123"/>
+      <path d="M-95 278 72 278M-98 288 77 288M-99 298 82 298M-98 308 79 308M-95 318 74 318M-90 328 68 328" stroke="#f2d49a" stroke-width="2" opacity=".75"/>
+    </g>
+    <path d="M-178 320q75-17 151-6" stroke="#b67b55" stroke-width="24" stroke-linecap="round"/>
+    <path d="M174 303q-70 7-127 36" stroke="#b67b55" stroke-width="24" stroke-linecap="round"/>
+  </g>
+  <g fill="#d6b273" opacity=".6"><circle cx="172" cy="175" r="2"/><circle cx="213" cy="126" r="2"/><circle cx="1010" cy="106" r="2"/><circle cx="1134" cy="207" r="2"/></g>
+</svg>

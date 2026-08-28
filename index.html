@@ -16,6 +16,7 @@
       </a>
       <nav class="main-nav" aria-label="主导航">
         <button class="nav-item active" data-view="practice">音阶训练</button>
+        <button class="nav-item" data-view="perform">演奏模式</button>
         <button class="nav-item" data-view="metronome">节拍器</button>
         <button class="nav-item" data-view="scores">曲谱</button>
         <button class="nav-item" data-view="stats">练习统计</button>
@@ -124,6 +125,23 @@
         </section>
       </section>
 
+      <section class="view" id="perform-view">
+        <div class="perform-heading">
+          <div><p class="eyebrow">自由演奏</p><h1>让每个按键，变成一根会唱歌的琴弦。</h1></div>
+          <div class="perform-status"><i></i><span id="perform-status-text">等待演奏</span></div>
+        </div>
+        <section class="western-stage" id="western-stage">
+          <img src="assets/cowboy-guitarist.svg" alt="黄昏荒野中的牛仔吉他手">
+          <canvas id="music-flow-canvas" width="1200" height="620" aria-label="随演奏流动的音符波浪"></canvas>
+          <div class="stage-vignette" aria-hidden="true"></div>
+          <div class="now-playing"><small>正在演奏</small><strong id="perform-note">--</strong><span id="perform-duration">轻触音键或使用键盘</span></div>
+        </section>
+        <section class="performance-keyboard" aria-label="演奏音阶键盘">
+          <div class="keyboard-label"><span>音阶键盘</span><small>轻触短音 · 长按延音 · 支持多键同时演奏</small></div>
+          <div class="note-key-grid" id="note-key-grid"></div>
+        </section>
+      </section>
+
       <section class="view" id="metronome-view">
         <div class="metronome-layout">
           <section class="metro-main">
@@ -221,6 +239,6 @@
   </div>
   <div class="edge-flash" id="edge-flash"></div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=quiz-flow-1"></script>
+  <script src="app.js?v=perform-mode-1"></script>
 </body>
 </html>

@@ -80,6 +80,108 @@
     if (!document.hidden && audioContext?.state === 'suspended') audioContext.resume().catch(() => {});
   });
 
+  // Performance mode
+  const PERFORMANCE_KEYS = [
+    { key: 'c', label: 'C', midi: 60 }, { key: '1', label: 'C#/Db', midi: 61, accidental: true },
+    { key: 'd', label: 'D', midi: 62 }, { key: '2', label: 'D#/Eb', midi: 63, accidental: true },
+    { key: 'e', label: 'E', midi: 64 }, { key: 'f', label: 'F', midi: 65 },
+    { key: '3', label: 'F#/Gb', midi: 66, accidental: true }, { key: 'g', label: 'G', midi: 67 },
+    { key: '4', label: 'G#/Ab', midi: 68, accidental: true }, { key: 'a', label: 'A', midi: 69 },
+    { key: '6', label: 'A#/Bb', midi: 70, accidental: true }, { key: 'b', label: 'B', midi: 71 },
+    { key: '7', label: 'C5', midi: 72 }
+  ];
+  const performanceVoices = new Map();
+  const performanceHeldKeys = new Set();
+  const performancePendingKeys = new Set();
+  const musicParticles = [];
+  const performanceCanvas = $('#music-flow-canvas');
+  const performanceCtx = performanceCanvas.getContext('2d');
+  let flowAnimation;
+
+  PERFORMANCE_KEYS.forEach(note => {
+    const button = document.createElement('button');
+    button.className = `performance-key${note.accidental ? ' accidental' : ''}`;
+    button.type = 'button'; button.dataset.key = note.key;
+    button.innerHTML = `<strong>${note.label}</strong><span>${note.midi < 72 ? '第 4 八度' : '第 5 八度'}</span><kbd>${note.key.toUpperCase()}</kbd>`;
+    button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); startPerformanceNote(note); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => button.addEventListener(type, () => stopPerformanceNote(note.key)));
+    $('#note-key-grid').append(button);
+  });
+
+  function createPerformanceVoice(note) {
+    const ctx = getAudio(); const now = ctx.currentTime;
+    const output = ctx.createGain(); const filter = ctx.createBiquadFilter(); const vibrato = ctx.createOscillator(); const vibratoGain = ctx.createGain();
+    output.gain.setValueAtTime(.0001, now); output.gain.exponentialRampToValueAtTime(.42, now + .018);
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(3200, now); filter.Q.value = .65;
+    vibrato.frequency.value = 5.1; vibratoGain.gain.value = 0; vibrato.connect(vibratoGain);
+    const oscillators = [
+      { type: 'triangle', ratio: 1, level: 1 }, { type: 'sine', ratio: 2, level: .22 }, { type: 'sine', ratio: 3, level: .08 }
+    ].map(partial => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = partial.type; osc.frequency.value = 440 * Math.pow(2, (note.midi - 69) / 12) * partial.ratio; gain.gain.value = partial.level;
+      vibratoGain.connect(osc.detune); osc.connect(gain).connect(filter); osc.start(now); return osc;
+    });
+    filter.connect(output).connect(ctx.destination); vibrato.start(now);
+    return { ctx, output, filter, vibrato, vibratoGain, oscillators, started: performance.now(), held: false, flowTimer: null, holdTimer: null };
+  }
+
+  async function startPerformanceNote(note) {
+    if (!$('#perform-view').classList.contains('active') || performanceVoices.has(note.key) || performancePendingKeys.has(note.key)) return;
+    performanceHeldKeys.add(note.key); performancePendingKeys.add(note.key);
+    try { await ensureAudioReady(); } catch { performanceHeldKeys.delete(note.key); performancePendingKeys.delete(note.key); return toast('声音启动失败，请检查设备媒体音量'); }
+    performancePendingKeys.delete(note.key);
+    const voice = createPerformanceVoice(note); performanceVoices.set(note.key, voice);
+    const button = $(`.performance-key[data-key="${note.key}"]`); button?.classList.add('active');
+    $('#perform-note').textContent = note.label; $('#perform-duration').textContent = '拨弦短音';
+    $('#perform-status-text').textContent = `${note.label} 正在发声`; $('.perform-status').classList.add('live');
+    emitMusicParticle(note, false);
+    voice.holdTimer = setTimeout(() => {
+      if (!performanceVoices.has(note.key) || !performanceHeldKeys.has(note.key)) return;
+      voice.held = true; voice.vibratoGain.gain.linearRampToValueAtTime(8, voice.ctx.currentTime + .18); voice.filter.frequency.linearRampToValueAtTime(2200, voice.ctx.currentTime + .3);
+      button?.classList.add('sustained'); $('#perform-duration').textContent = '持续延长音';
+      voice.flowTimer = setInterval(() => emitMusicParticle(note, true), 125);
+    }, 260);
+    if (!performanceHeldKeys.has(note.key)) setTimeout(() => stopPerformanceNote(note.key), 120);
+  }
+
+  function stopPerformanceNote(key) {
+    performanceHeldKeys.delete(key);
+    const voice = performanceVoices.get(key); if (!voice) return;
+    clearTimeout(voice.holdTimer); clearInterval(voice.flowTimer); const now = voice.ctx.currentTime; const release = voice.held ? .52 : .2;
+    voice.output.gain.cancelScheduledValues(now); voice.output.gain.setValueAtTime(Math.max(.0001, voice.output.gain.value), now); voice.output.gain.exponentialRampToValueAtTime(.0001, now + release);
+    voice.oscillators.forEach(osc => osc.stop(now + release + .04)); voice.vibrato.stop(now + release + .04); performanceVoices.delete(key);
+    $(`.performance-key[data-key="${key}"]`)?.classList.remove('active', 'sustained');
+    if (!performanceVoices.size) { $('#perform-status-text').textContent = '等待演奏'; $('.perform-status').classList.remove('live'); $('#perform-duration').textContent = '轻触音键或使用键盘'; }
+  }
+
+  function stopAllPerformanceNotes() { performanceHeldKeys.clear(); [...performanceVoices.keys()].forEach(stopPerformanceNote); }
+  document.addEventListener('keydown', event => {
+    if (!$('#perform-view').classList.contains('active') || event.repeat || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+    const note = PERFORMANCE_KEYS.find(item => item.key === event.key.toLowerCase()); if (!note) return; event.preventDefault(); startPerformanceNote(note);
+  });
+  document.addEventListener('keyup', event => { const key = event.key.toLowerCase(); if (performanceVoices.has(key) || performancePendingKeys.has(key) || performanceHeldKeys.has(key)) { event.preventDefault(); stopPerformanceNote(key); } });
+  window.addEventListener('blur', stopAllPerformanceNotes);
+
+  function emitMusicParticle(note, sustained) {
+    const hue = 72 + (note.midi - 60) * 13;
+    musicParticles.push({ x: .53, y: .49, life: 0, speed: sustained ? .0022 : .0034, amp: sustained ? .032 : .018, phase: Math.random() * Math.PI * 2, symbol: sustained ? '♪' : ['♪', '♫', '♩'][Math.floor(Math.random() * 3)], hue, sustained });
+    if (!flowAnimation) flowAnimation = requestAnimationFrame(drawMusicFlow);
+  }
+  function drawMusicFlow() {
+    const rect = performanceCanvas.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1); const width = Math.max(1, Math.round(rect.width * dpr)); const height = Math.max(1, Math.round(rect.height * dpr));
+    if (performanceCanvas.width !== width || performanceCanvas.height !== height) { performanceCanvas.width = width; performanceCanvas.height = height; }
+    performanceCtx.clearRect(0, 0, width, height); performanceCtx.save(); performanceCtx.scale(dpr, dpr);
+    musicParticles.forEach(particle => {
+      particle.life += particle.speed; particle.x += particle.speed * .76; const fade = Math.sin(Math.min(1, particle.life / .18) * Math.PI / 2) * Math.max(0, 1 - particle.life);
+      const x = particle.x * rect.width; const y = (particle.y + Math.sin(particle.life * 36 + particle.phase) * particle.amp) * rect.height;
+      performanceCtx.globalAlpha = fade; performanceCtx.fillStyle = `hsl(${particle.hue} 78% 70%)`; performanceCtx.font = `${particle.sustained ? 20 : 27}px Georgia, serif`; performanceCtx.fillText(particle.symbol, x, y);
+      if (particle.sustained) { performanceCtx.strokeStyle = `hsla(${particle.hue} 78% 70% / ${fade * .42})`; performanceCtx.lineWidth = 1.4; performanceCtx.beginPath(); for (let i = 0; i < 56; i += 4) { const px = x - i; const py = y + Math.sin((particle.life * 36 - i * .12) + particle.phase) * 10; i ? performanceCtx.lineTo(px, py) : performanceCtx.moveTo(px, py); } performanceCtx.stroke(); }
+    });
+    performanceCtx.restore();
+    for (let i = musicParticles.length - 1; i >= 0; i--) if (musicParticles[i].life >= 1) musicParticles.splice(i, 1);
+    flowAnimation = musicParticles.length ? requestAnimationFrame(drawMusicFlow) : null;
+  }
+
   function toast(message) {
     const el = $('#toast'); el.textContent = message; el.classList.add('show');
     clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2600);
@@ -87,6 +189,7 @@
 
   // Navigation and theme
   $$('.nav-item').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.view !== 'perform') stopAllPerformanceNotes();
     $$('.nav-item').forEach(item => item.classList.toggle('active', item === button));
     $$('.view').forEach(view => view.classList.remove('active'));
     $(`#${button.dataset.view}-view`).classList.add('active');
