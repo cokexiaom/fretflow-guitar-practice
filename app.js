@@ -81,19 +81,21 @@
   });
 
   // Performance mode
-  const PERFORMANCE_ROWS = [
-    { string: 6, open: 40, keys: ['z', 'x', 'c', 'v'] },
-    { string: 5, open: 45, keys: ['a', 's', 'd', 'f'] },
-    { string: 4, open: 50, keys: ['q', 'w', 'e', 'r'] },
-    { string: 3, open: 55, keys: ['1', '2', '3', '4'] },
-    { string: 2, open: 59, keys: ['5', '6', '7', '8'] },
-    { string: 1, open: 64, keys: ['9', '0', '-', '='] }
+  const PERFORMANCE_KEYS = [
+    { key: 'c', label: 'C', midi: 48, string: 5, fret: 3 },
+    { key: '1', label: 'C#/Db', midi: 61, string: 2, fret: 2, accidental: true },
+    { key: 'd', label: 'D', midi: 50, string: 4, fret: 0 },
+    { key: '2', label: 'D#/Eb', midi: 51, string: 4, fret: 1, accidental: true },
+    { key: 'e', label: 'E', midi: 40, string: 6, fret: 0 },
+    { key: 'f', label: 'F', midi: 41, string: 6, fret: 1 },
+    { key: '3', label: 'F#/Gb', midi: 42, string: 6, fret: 2, accidental: true },
+    { key: 'g', label: 'G', midi: 43, string: 6, fret: 3 },
+    { key: '4', label: 'G#/Ab', midi: 56, string: 3, fret: 1, accidental: true },
+    { key: 'a', label: 'A', midi: 45, string: 5, fret: 0 },
+    { key: '6', label: 'A#/Bb', midi: 46, string: 5, fret: 1, accidental: true },
+    { key: 'b', label: 'B', midi: 47, string: 5, fret: 2 },
+    { key: '7', label: 'C↑', midi: 60, string: 2, fret: 1 }
   ];
-  const PERFORMANCE_KEYS = PERFORMANCE_ROWS.flatMap(row => row.keys.map((key, fret) => {
-    const midi = row.open + fret; const pc = midi % 12;
-    const flatNames = { 1: 'Db', 3: 'Eb', 6: 'Gb', 8: 'Ab', 10: 'Bb' };
-    return { key, label: flatNames[pc] ? `${NOTE_NAMES[pc]}/${flatNames[pc]}` : NOTE_NAMES[pc], midi, string: row.string, fret, accidental: Boolean(flatNames[pc]) };
-  }));
   const performanceVoices = new Map();
   const performanceHeldKeys = new Set();
   const performancePendingKeys = new Set();
@@ -102,17 +104,13 @@
   const performanceCtx = performanceCanvas.getContext('2d');
   let flowAnimation;
 
-  PERFORMANCE_ROWS.forEach((row, rowIndex) => {
-    const rowElement = document.createElement('div'); rowElement.className = 'fret-string-row'; rowElement.style.setProperty('--string-size', `${Math.max(1, (6 - rowIndex) * .35)}px`);
-    rowElement.innerHTML = `<div class="string-name"><strong>${NOTE_NAMES[row.open % 12]}</strong><span>${row.string} 弦</span></div>`;
-    PERFORMANCE_KEYS.filter(note => note.string === row.string).forEach(note => {
-      const button = document.createElement('button'); button.className = `performance-key${note.accidental ? ' accidental' : ''}`;
-      button.type = 'button'; button.dataset.key = note.key; button.innerHTML = `<strong>${note.label}</strong><span>${note.fret ? `${note.fret} 品` : '空弦'}</span><kbd>${note.key.toUpperCase()}</kbd>`;
-      button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); startPerformanceNote(note); });
-      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => button.addEventListener(type, () => stopPerformanceNote(note.key)));
-      rowElement.append(button);
-    });
-    $('#note-key-grid').append(rowElement);
+  PERFORMANCE_KEYS.forEach(note => {
+    const button = document.createElement('button'); button.className = `performance-key${note.accidental ? ' accidental' : ''}`;
+    button.type = 'button'; button.dataset.key = note.key;
+    button.innerHTML = `<strong>${note.label}</strong><span>${note.string} 弦${note.fret ? ` ${note.fret} 品` : '空弦'}</span><kbd>${note.key.toUpperCase()}</kbd>`;
+    button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); startPerformanceNote(note); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => button.addEventListener(type, () => stopPerformanceNote(note.key)));
+    $('#note-key-grid').append(button);
   });
 
   function createPerformanceVoice(note) {
