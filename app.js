@@ -83,18 +83,18 @@
   // Performance mode
   const PERFORMANCE_KEYS = [
     { key: 'c', label: 'C', midi: 48, string: 5, fret: 3 },
-    { key: '1', label: 'C#/Db', midi: 61, string: 2, fret: 2, accidental: true },
     { key: 'd', label: 'D', midi: 50, string: 4, fret: 0 },
-    { key: '2', label: 'D#/Eb', midi: 51, string: 4, fret: 1, accidental: true },
     { key: 'e', label: 'E', midi: 40, string: 6, fret: 0 },
     { key: 'f', label: 'F', midi: 41, string: 6, fret: 1 },
-    { key: '3', label: 'F#/Gb', midi: 42, string: 6, fret: 2, accidental: true },
     { key: 'g', label: 'G', midi: 43, string: 6, fret: 3 },
-    { key: '4', label: 'G#/Ab', midi: 56, string: 3, fret: 1, accidental: true },
     { key: 'a', label: 'A', midi: 45, string: 5, fret: 0 },
-    { key: '6', label: 'A#/Bb', midi: 46, string: 5, fret: 1, accidental: true },
     { key: 'b', label: 'B', midi: 47, string: 5, fret: 2 },
-    { key: '7', label: 'C↑', midi: 60, string: 2, fret: 1 }
+    { key: '1', label: 'C↑', midi: 60, string: 2, fret: 1 },
+    { key: '2', label: 'D↑', midi: 62, string: 2, fret: 3 },
+    { key: '3', label: 'E↑', midi: 64, string: 1, fret: 0 },
+    { key: '4', label: 'F↑', midi: 65, string: 1, fret: 1 },
+    { key: '6', label: 'A↑', midi: 57, string: 3, fret: 2 },
+    { key: '7', label: 'B↑', midi: 59, string: 2, fret: 0 }
   ];
   const performanceVoices = new Map();
   const performanceHeldKeys = new Set();
