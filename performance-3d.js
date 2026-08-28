@@ -53,7 +53,7 @@ if (canvas) {
   const guitar = new THREE.Group(); guitar.position.set(-.18, 1.88, .57); guitar.rotation.set(-.04, -.08, -1.47); guitar.scale.set(.88, .88, .88); cowboy.add(guitar);
   const bodyShape = new THREE.Shape();
   bodyShape.moveTo(0, 1.03); bodyShape.bezierCurveTo(.25, .98, .48, .76, .42, .5); bodyShape.bezierCurveTo(.36, .27, .65, .18, .7, -.18); bodyShape.bezierCurveTo(.77, -.7, .38, -1.02, 0, -1.04); bodyShape.bezierCurveTo(-.38, -1.02, -.77, -.7, -.7, -.18); bodyShape.bezierCurveTo(-.65, .18, -.36, .27, -.42, .5); bodyShape.bezierCurveTo(-.48, .76, -.25, .98, 0, 1.03);
-  const body = mesh(new THREE.ExtrudeGeometry(bodyShape, { depth: .22, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: .06, bevelThickness: .05 }), mat(0xb9682b, .38), guitar); body.rotation.x = Math.PI / 2; body.scale.set(1.05, 1.05, 1.05);
+  const body = mesh(new THREE.ExtrudeGeometry(bodyShape, { depth: .22, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: .06, bevelThickness: .05 }), mat(0xb9682b, .38), guitar); body.scale.set(1.05, 1.05, 1.05);
   const soundHole = mesh(new THREE.CylinderGeometry(.25, .25, .018, 40), mat(0x1a100b), guitar); soundHole.rotation.x = Math.PI / 2; soundHole.position.set(0, .26, .29);
   const rosette = mesh(new THREE.TorusGeometry(.3, .025, 8, 40), brass, guitar); rosette.position.set(0, .26, .305);
   const bridge = mesh(new THREE.BoxGeometry(.62, .1, .08), dark, guitar); bridge.position.set(0, -.48, .32);
