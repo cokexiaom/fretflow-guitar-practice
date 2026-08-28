@@ -93,6 +93,7 @@
     { key: '2', label: 'D↑', midi: 62, string: 2, fret: 3 },
     { key: '3', label: 'E↑', midi: 64, string: 1, fret: 0 },
     { key: '4', label: 'F↑', midi: 65, string: 1, fret: 1 },
+    { key: '5', label: 'G↑', midi: 67, string: 1, fret: 3 },
     { key: '6', label: 'A↑', midi: 57, string: 3, fret: 2 },
     { key: '7', label: 'B↑', midi: 59, string: 2, fret: 0 }
   ];
