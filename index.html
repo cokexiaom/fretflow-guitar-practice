@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101412">
   <title>FretFlow 吉他练习室</title>
-  <link rel="stylesheet" href="styles.css?v=multi-page-1">
+  <link rel="stylesheet" href="styles.css?v=fret-stage-3">
 </head>
 <body>
   <div class="app-shell">
@@ -131,13 +131,14 @@
           <div class="perform-status"><i></i><span id="perform-status-text">等待演奏</span></div>
         </div>
         <section class="western-stage" id="western-stage">
-          <img src="assets/cowboy-guitarist.svg" alt="黄昏荒野中的牛仔吉他手">
+          <canvas id="cowboy-3d-canvas" aria-label="三维西部牛仔木吉他手"></canvas>
           <canvas id="music-flow-canvas" width="1200" height="620" aria-label="随演奏流动的音符波浪"></canvas>
           <div class="stage-vignette" aria-hidden="true"></div>
           <div class="now-playing"><small>正在演奏</small><strong id="perform-note">--</strong><span id="perform-duration">轻触音键或使用键盘</span></div>
         </section>
         <section class="performance-keyboard" aria-label="演奏音阶键盘">
-          <div class="keyboard-label"><span>音阶键盘</span><small>轻触短音 · 长按延音 · 支持多键同时演奏</small></div>
+          <div class="keyboard-label"><span>前三品弦位</span><small>标准调弦 · 空弦到第 3 品 · 轻触短音 · 长按延音</small></div>
+          <div class="fret-column-labels" aria-hidden="true"><span>琴弦</span><span>空弦</span><span>1 品</span><span>2 品</span><span>3 品</span></div>
           <div class="note-key-grid" id="note-key-grid"></div>
         </section>
       </section>
@@ -239,6 +240,7 @@
   </div>
   <div class="edge-flash" id="edge-flash"></div>
   <div class="toast" id="toast" role="status"></div>
-  <script src="app.js?v=perform-mode-1"></script>
+  <script src="app.js?v=fret-stage-3"></script>
+  <script type="module" src="performance-3d.js?v=fret-stage-3"></script>
 </body>
 </html>

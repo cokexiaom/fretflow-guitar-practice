@@ -81,15 +81,19 @@
   });
 
   // Performance mode
-  const PERFORMANCE_KEYS = [
-    { key: 'c', label: 'C', midi: 60 }, { key: '1', label: 'C#/Db', midi: 61, accidental: true },
-    { key: 'd', label: 'D', midi: 62 }, { key: '2', label: 'D#/Eb', midi: 63, accidental: true },
-    { key: 'e', label: 'E', midi: 64 }, { key: 'f', label: 'F', midi: 65 },
-    { key: '3', label: 'F#/Gb', midi: 66, accidental: true }, { key: 'g', label: 'G', midi: 67 },
-    { key: '4', label: 'G#/Ab', midi: 68, accidental: true }, { key: 'a', label: 'A', midi: 69 },
-    { key: '6', label: 'A#/Bb', midi: 70, accidental: true }, { key: 'b', label: 'B', midi: 71 },
-    { key: '7', label: 'C5', midi: 72 }
+  const PERFORMANCE_ROWS = [
+    { string: 6, open: 40, keys: ['z', 'x', 'c', 'v'] },
+    { string: 5, open: 45, keys: ['a', 's', 'd', 'f'] },
+    { string: 4, open: 50, keys: ['q', 'w', 'e', 'r'] },
+    { string: 3, open: 55, keys: ['1', '2', '3', '4'] },
+    { string: 2, open: 59, keys: ['5', '6', '7', '8'] },
+    { string: 1, open: 64, keys: ['9', '0', '-', '='] }
   ];
+  const PERFORMANCE_KEYS = PERFORMANCE_ROWS.flatMap(row => row.keys.map((key, fret) => {
+    const midi = row.open + fret; const pc = midi % 12;
+    const flatNames = { 1: 'Db', 3: 'Eb', 6: 'Gb', 8: 'Ab', 10: 'Bb' };
+    return { key, label: flatNames[pc] ? `${NOTE_NAMES[pc]}/${flatNames[pc]}` : NOTE_NAMES[pc], midi, string: row.string, fret, accidental: Boolean(flatNames[pc]) };
+  }));
   const performanceVoices = new Map();
   const performanceHeldKeys = new Set();
   const performancePendingKeys = new Set();
@@ -98,14 +102,17 @@
   const performanceCtx = performanceCanvas.getContext('2d');
   let flowAnimation;
 
-  PERFORMANCE_KEYS.forEach(note => {
-    const button = document.createElement('button');
-    button.className = `performance-key${note.accidental ? ' accidental' : ''}`;
-    button.type = 'button'; button.dataset.key = note.key;
-    button.innerHTML = `<strong>${note.label}</strong><span>${note.midi < 72 ? '第 4 八度' : '第 5 八度'}</span><kbd>${note.key.toUpperCase()}</kbd>`;
-    button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); startPerformanceNote(note); });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => button.addEventListener(type, () => stopPerformanceNote(note.key)));
-    $('#note-key-grid').append(button);
+  PERFORMANCE_ROWS.forEach((row, rowIndex) => {
+    const rowElement = document.createElement('div'); rowElement.className = 'fret-string-row'; rowElement.style.setProperty('--string-size', `${Math.max(1, (6 - rowIndex) * .35)}px`);
+    rowElement.innerHTML = `<div class="string-name"><strong>${NOTE_NAMES[row.open % 12]}</strong><span>${row.string} 弦</span></div>`;
+    PERFORMANCE_KEYS.filter(note => note.string === row.string).forEach(note => {
+      const button = document.createElement('button'); button.className = `performance-key${note.accidental ? ' accidental' : ''}`;
+      button.type = 'button'; button.dataset.key = note.key; button.innerHTML = `<strong>${note.label}</strong><span>${note.fret ? `${note.fret} 品` : '空弦'}</span><kbd>${note.key.toUpperCase()}</kbd>`;
+      button.addEventListener('pointerdown', event => { event.preventDefault(); button.setPointerCapture?.(event.pointerId); startPerformanceNote(note); });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => button.addEventListener(type, () => stopPerformanceNote(note.key)));
+      rowElement.append(button);
+    });
+    $('#note-key-grid').append(rowElement);
   });
 
   function createPerformanceVoice(note) {
@@ -134,6 +141,7 @@
     const button = $(`.performance-key[data-key="${note.key}"]`); button?.classList.add('active');
     $('#perform-note').textContent = note.label; $('#perform-duration').textContent = '拨弦短音';
     $('#perform-status-text').textContent = `${note.label} 正在发声`; $('.perform-status').classList.add('live');
+    document.dispatchEvent(new CustomEvent('fretflow:strum', { detail: { string: note.string, fret: note.fret } }));
     emitMusicParticle(note, false);
     voice.holdTimer = setTimeout(() => {
       if (!performanceVoices.has(note.key) || !performanceHeldKeys.has(note.key)) return;
@@ -193,6 +201,7 @@
     $$('.nav-item').forEach(item => item.classList.toggle('active', item === button));
     $$('.view').forEach(view => view.classList.remove('active'));
     $(`#${button.dataset.view}-view`).classList.add('active');
+    if (button.dataset.view === 'perform') requestAnimationFrame(() => document.dispatchEvent(new Event('fretflow:stage-resize')));
     if (button.dataset.view === 'stats') renderStats();
     if (button.dataset.view === 'scores') renderScores();
   }));
